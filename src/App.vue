@@ -40,6 +40,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
+import axios from 'axios';
 
 interface Language {
   name: string;
@@ -53,12 +54,12 @@ export default defineComponent({
     const languages = ref<Language[]>([
       {
         name: 'JavaScript',
-        value: 'javascript',
+        value: 'js',
         example: 'console.log("Hello from JavaScript!");'
       },
       {
         name: 'TypeScript',
-        value: 'typescript',
+        value: 'ts',
         example: 'const message: string = "Hello from TypeScript!";\nconsole.log(message);'
       },
       {
@@ -68,7 +69,7 @@ export default defineComponent({
       },
       {
         name: 'Go',
-        value: 'golang',
+        value: 'go',
         example: 'package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello from Go!")\n}'
       }
     ]);
@@ -97,23 +98,28 @@ export default defineComponent({
       output.value = 'Running code...';
 
       try {
-        // In a real implementation, this would make an API call to your backend
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const data = {
+          code: btoa(code.value),
+          language: selectedLanguage.value
+        }
 
-        // Mock response based on language
-        switch (selectedLanguage.value) {
-          case 'javascript':
-          case 'typescript':
-            output.value = 'Output:\nHello from JavaScript/TypeScript!\n\nExecution time: 0.025s';
-            break;
-          case 'python':
-            output.value = 'Output:\nHello from Python!\n\nExecution time: 0.018s';
-            break;
-          case 'golang':
-            output.value = 'Output:\nHello from Go!\n\nExecution time: 0.012s';
-            break;
-          default:
-            output.value = 'Language not supported.';
+        try {
+          const response = await axios.post('http://localhost:8000/api/process', data, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          console.log('Response:', response.data);
+
+          let serverOutput = "Server error"
+          if(response.data.stdout !== ''){
+            serverOutput = response.data.stdout;
+          }
+
+          output.value = serverOutput
+
+        } catch (error) {
+          console.error('Error:', error);
         }
       } catch (error) {
         output.value = `Error: ${error}`;
